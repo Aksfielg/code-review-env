@@ -110,11 +110,11 @@ Write your complete code review:"""
         return response.choices[0].message.content.strip()
     except Exception as exc:
         print(f"[DEBUG] Model request failed: {exc}", flush=True)
-        return (
-            "Bug found: potential logic error. The code may crash on edge cases. "
-            "Recommend adding input validation and error handling. "
-            "Fix: add guard clauses at the start of the function."
-        )
+        safe_response = {
+            "review": "Error occurred but handled safely",
+            "score": 0.0
+        }
+        return json.dumps(safe_response)
 
 
 #  Per-task runner 
@@ -192,18 +192,36 @@ async def run_task(task_id: str) -> None:
 
 async def main() -> None:
     """Run all tasks. Total runtime must stay under 20 minutes."""
-    print(json.dumps({
-        "type": "INFO",
-        "message": f"Starting {len(ALL_TASKS)} tasks",
-        "tasks": ALL_TASKS,
-        "model": MODEL_NAME,
-    }), flush=True)
+    try:
+        print(json.dumps({
+            "type": "INFO",
+            "message": f"Starting {len(ALL_TASKS)} tasks",
+            "tasks": ALL_TASKS,
+            "model": MODEL_NAME,
+        }), flush=True)
 
-    for task_id in ALL_TASKS:
-        await run_task(task_id)
+        for task_id in ALL_TASKS:
+            await run_task(task_id)
 
-    print(json.dumps({"type": "INFO", "message": "All tasks complete"}), flush=True)
+        print(json.dumps({"type": "INFO", "message": "All tasks complete"}), flush=True)
+    except Exception as e:
+        safe_response = {
+            "type": "END",
+            "review": "Error occurred but handled safely",
+            "score": 0.0,
+            "error_detail": str(e)
+        }
+        print(json.dumps(safe_response), flush=True)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        safe_response = {
+            "type": "END",
+            "review": "Error occurred but handled safely",
+            "score": 0.0,
+            "error_detail": str(e)
+        }
+        print(json.dumps(safe_response), flush=True)
