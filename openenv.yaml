@@ -1,0 +1,78 @@
+name: code_review_env
+version: "1.0.0"
+description: "Real-world Python code review RL environment - AI agent finds bugs, security vulnerabilities, and performance issues across 5 task types"
+author: "Team Prodigy"
+tags:
+  - openenv
+  - code-review
+  - real-world
+  - security
+  - python
+hardware: cpu-basic
+tasks:
+  - id: easy_01
+    description: "Find 1 crash bug - ZeroDivisionError on empty list input"
+    difficulty: easy
+    task_type: bug
+    max_steps: 5
+    reward_threshold: 0.85
+  - id: easy_02
+    description: "Find bug when b = 0 and suggest fix."
+    difficulty: easy
+    task_type: bug
+    max_steps: 5
+    reward_threshold: 0.85
+  - id: medium_01
+    description: "Find 2 bugs - KeyError on missing dict key + typo in key name"
+    difficulty: medium
+    task_type: bug
+    max_steps: 5
+    reward_threshold: 0.85
+  - id: hard_01
+    description: "Find 3 issues - SQL injection vulnerability + wrong operator + connection leak"
+    difficulty: hard
+    task_type: security
+    max_steps: 5
+    reward_threshold: 0.85
+  - id: perf_01
+    description: "Identify O(n^2) performance bug and suggest O(n) fix"
+    difficulty: medium
+    task_type: performance
+    max_steps: 5
+    reward_threshold: 0.85
+  - id: logic_01
+    description: "Find 3 logic bugs in binary search - off-by-one and infinite loop"
+    difficulty: hard
+    task_type: logic
+    max_steps: 5
+    reward_threshold: 0.85
+reward:
+  type: continuous
+  range: [0.0, 1.0]
+  shaped: true
+  components:
+    - bugs_found
+    - fixes_quality
+    - security_check
+    - performance_check
+    - improvement_bonus
+    - verbosity_penalty
+action_space:
+  type: text
+  field: review_text
+  min_length: 10
+  max_length: 3000
+observation_space:
+  fields:
+    - task_id
+    - difficulty
+    - task_type
+    - code_snippet
+    - task_description
+    - attempt_number
+    - max_attempts
+    - previous_reviews
+    - hint
+    - last_reward
+    - feedback
+    - is_done
