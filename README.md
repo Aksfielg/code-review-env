@@ -22,6 +22,31 @@ and suggest concrete fixes - the same work a senior engineer does every day.
 
 **Trained agents can plug into GitHub Actions / CI-CD pipelines.**
 
+## Architecture
+
+This system follows a reinforcement learning (RL) environment design:
+
+- Agent: Writes a code review (bug detection + fixes)
+- Environment: Provides buggy code snippets and evaluates responses
+- Action: Text-based review submitted by the agent
+- Reward: Score from 0 to 1 based on correctness and completeness
+
+Flow:
+1. Agent requests a task (/reset)
+2. Environment returns buggy code
+3. Agent submits review (/step)
+4. Environment grades response and returns reward
+5. Agent improves over multiple attempts
+
+This allows training AI agents for automated code review in real-world pipelines.
+
+## Why This Matters
+
+- Reduces developer workload
+- Enables automated CI/CD code review
+- Detects security vulnerabilities early
+- Scales code quality checks across teams
+
 ## Tasks
 
 | Task ID | Type | Difficulty | What the agent must find |
