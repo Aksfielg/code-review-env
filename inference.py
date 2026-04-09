@@ -43,15 +43,15 @@ ALL_TASKS              = ["easy_01", "easy_02", "medium_01", "hard_01", "perf_01
 #  Mandatory log functions - strict OpenEnv evaluator format 
 
 def log_start(task: str, env: str, model: str) -> None:
-    print(f"[START] task={task}", flush=True)
+    print(f"[START] task={task} env={env} model={model}", flush=True)
 
 
 def log_step(step: int, action: str, reward: float, done: bool, error=None) -> None:
-    print(f"[STEP] step={step} reward={round(float(reward), 4)}", flush=True)
+    print(f"[STEP] step={step} reward={round(float(reward),4)} done={done}", flush=True)
 
 
-def log_end(task: str, success: bool, steps: int, score: float, rewards: List[float]) -> None:
-    print(f"[END] task={task} score={round(float(score), 4)} steps={steps}", flush=True)
+def log_end(task: str, success: bool, steps: int, score: float, rewards: list) -> None:
+    print(f"[END] task={task} score={round(float(score),4)} steps={steps} success={success}", flush=True)
 
 
 #  Rule-based review generation (no API required) 
