@@ -40,19 +40,18 @@ SUCCESS_SCORE_THRESHOLD = 0.6
 ALL_TASKS              = ["easy_01", "easy_02", "medium_01", "hard_01", "perf_01", "logic_01"]
 
 
-#  Mandatory log functions - exact string format required by OpenEnv evaluator 
+#  Mandatory log functions - strict OpenEnv evaluator format 
 
 def log_start(task: str, env: str, model: str) -> None:
-    print(f"[START] task={task} env={env} model={model}", flush=True)
+    print(f"[START] task={task}", flush=True)
 
 
 def log_step(step: int, action: str, reward: float, done: bool, error=None) -> None:
-    error_part = f" error={error}" if error is not None else ""
-    print(f"[STEP] step={step} reward={round(float(reward), 4)} done={done}{error_part}", flush=True)
+    print(f"[STEP] step={step} reward={round(float(reward), 4)}", flush=True)
 
 
 def log_end(task: str, success: bool, steps: int, score: float, rewards: List[float]) -> None:
-    print(f"[END] task={task} score={round(float(score), 4)} steps={steps} success={success}", flush=True)
+    print(f"[END] task={task} score={round(float(score), 4)} steps={steps}", flush=True)
 
 
 #  Rule-based review generation (no API required) 
