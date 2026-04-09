@@ -13,7 +13,7 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from typing import List
-# OpenAI import removed - using rule-based reviews instead
+from openai import OpenAI
 
 # Optional local imports — wrapped so the script survives in evaluator containers
 try:
@@ -30,7 +30,16 @@ MODEL_NAME       = os.getenv("MODEL_NAME", "gpt-4o-mini")
 HF_TOKEN         = os.getenv("HF_TOKEN")            # NO default - intentional
 LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")    # optional
 
-API_KEY = HF_TOKEN or "dummy-key"
+API_KEY = os.environ.get("API_KEY") or os.getenv("HF_TOKEN") or "dummy-key"
+
+# OpenAI client — reads base_url and api_key strictly from environment
+try:
+    _client = OpenAI(
+        base_url=os.environ.get("API_BASE_URL", API_BASE_URL),
+        api_key=os.environ.get("API_KEY", API_KEY),
+    )
+except Exception:
+    _client = None  # type: ignore
 
 #  Constants 
 BENCHMARK              = "code-review-env"
@@ -138,24 +147,52 @@ _FALLBACK_REVIEW = (
 )
 
 
+def get_model_review(
+    code_snippet: str,
+    task_description: str,
+    hint: str,
+    feedback: str,
+) -> str:
+    """Call LLM via OpenAI-compatible API; fall back to rule-based on any error."""
+    if _client is not None:
+        try:
+            prompt = f"""You are a senior code reviewer.
+
+Task:
+{task_description}
+
+Code:
+{code_snippet}
+
+Find all bugs, explain causes, severity, and give fixes."""
+            response = _client.chat.completions.create(
+                model=os.environ.get("MODEL_NAME", MODEL_NAME),
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0,
+                max_tokens=600,
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as exc:
+            print(f"[DEBUG] API call failed: {exc}", flush=True)
+
+    # Fallback: rule-based review
+    return get_rule_based_review(code_snippet, task_description, hint, feedback)
+
+
 def get_rule_based_review(
     code_snippet: str,
     task_description: str,
     hint: str,
     feedback: str,
 ) -> str:
-    """Generate a meaningful code review using rule-based pattern matching."""
+    """Rule-based fallback when API is unavailable."""
     try:
         combined = (task_description + " " + code_snippet + " " + hint + " " + feedback).lower()
-
         for keywords, review_text in _RULE_BASED_REVIEWS:
             if any(kw in combined for kw in keywords):
                 return review_text
-
         return _FALLBACK_REVIEW
-
-    except Exception as exc:
-        print(f"[DEBUG] Rule-based review failed: {exc}", flush=True)
+    except Exception:
         return _FALLBACK_REVIEW
 
 
@@ -167,7 +204,7 @@ async def run_task(task_id: str) -> None:
     # Fallback mode: local environment modules not available (evaluator container)
     if CodeReviewEnvironment is None or CodeReviewAction is None:
         print(f"[DEBUG] Local modules unavailable — running fallback for {task_id}", flush=True)
-        fallback_review = get_rule_based_review(
+        fallback_review = get_model_review(
             code_snippet="",
             task_description=task_id,
             hint="",
@@ -195,7 +232,7 @@ async def run_task(task_id: str) -> None:
             if env.done:
                 break
 
-            review = get_rule_based_review(
+            review = get_model_review(
                 code_snippet=obs.code_snippet,
                 task_description=obs.task_description,
                 hint=obs.hint,
