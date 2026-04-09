@@ -40,36 +40,19 @@ SUCCESS_SCORE_THRESHOLD = 0.6
 ALL_TASKS              = ["easy_01", "easy_02", "medium_01", "hard_01", "perf_01", "logic_01"]
 
 
-#  Mandatory log functions - field names must match exactly 
+#  Mandatory log functions - exact string format required by OpenEnv evaluator 
 
 def log_start(task: str, env: str, model: str) -> None:
-    print(json.dumps({
-        "type":  "START",
-        "task":  task,
-        "env":   env,
-        "model": model,
-    }), flush=True)
+    print(f"[START] task={task} env={env} model={model}", flush=True)
 
 
 def log_step(step: int, action: str, reward: float, done: bool, error=None) -> None:
-    print(json.dumps({
-        "type":   "STEP",
-        "step":   step,
-        "action": str(action)[:300],
-        "reward": round(float(reward), 4),
-        "done":   bool(done),
-        "error":  error,
-    }), flush=True)
+    error_part = f" error={error}" if error is not None else ""
+    print(f"[STEP] step={step} reward={round(float(reward), 4)} done={done}{error_part}", flush=True)
 
 
-def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
-    print(json.dumps({
-        "type":    "END",
-        "success": bool(success),
-        "steps":   steps,
-        "score":   round(float(score), 4),
-        "rewards": [round(float(r), 4) for r in rewards],
-    }), flush=True)
+def log_end(task: str, success: bool, steps: int, score: float, rewards: List[float]) -> None:
+    print(f"[END] task={task} score={round(float(score), 4)} steps={steps} success={success}", flush=True)
 
 
 #  Rule-based review generation (no API required) 
@@ -193,7 +176,7 @@ async def run_task(task_id: str) -> None:
         )
         log_start(task=task_id, env=BENCHMARK, model=MODEL_NAME)
         log_step(step=1, action=fallback_review[:200], reward=0.5, done=True, error=None)
-        log_end(success=True, steps=1, score=0.5, rewards=[0.5])
+        log_end(task=task_id, success=True, steps=1, score=0.5, rewards=[0.5])
         return
 
     env = CodeReviewEnvironment(task_id=task_id)
@@ -240,7 +223,7 @@ async def run_task(task_id: str) -> None:
         print(f"[DEBUG] Task {task_id} crashed: {exc}", flush=True)
 
     finally:
-        log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
+        log_end(task=task_id, success=success, steps=steps_taken, score=score, rewards=rewards)
 
 
 #  Main 
@@ -248,35 +231,18 @@ async def run_task(task_id: str) -> None:
 async def main() -> None:
     """Run all tasks. Total runtime must stay under 20 minutes."""
     try:
-        print(json.dumps({
-            "type": "INFO",
-            "message": f"Starting {len(ALL_TASKS)} tasks",
-            "tasks": ALL_TASKS,
-            "model": MODEL_NAME,
-        }), flush=True)
+        print(f"[INFO] Starting {len(ALL_TASKS)} tasks: {ALL_TASKS} model={MODEL_NAME}", flush=True)
 
         for task_id in ALL_TASKS:
             await run_task(task_id)
 
-        print(json.dumps({"type": "INFO", "message": "All tasks complete"}), flush=True)
+        print("[INFO] All tasks complete", flush=True)
     except Exception as e:
-        safe_response = {
-            "type": "END",
-            "review": "Error occurred but handled safely",
-            "score": 0.0,
-            "error_detail": str(e)
-        }
-        print(json.dumps(safe_response), flush=True)
+        print(f"[END] task=unknown score=0.0 steps=0 success=False error={e}", flush=True)
 
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except Exception as e:
-        safe_response = {
-            "type": "END",
-            "review": "Error occurred but handled safely",
-            "score": 0.0,
-            "error_detail": str(e)
-        }
-        print(json.dumps(safe_response), flush=True)
+        print(f"[END] task=unknown score=0.0 steps=0 success=False error={e}", flush=True)
