@@ -156,7 +156,30 @@ def get_model_review(
     """Call LLM via OpenAI-compatible API; fall back to rule-based on any error."""
     if _client is not None:
         try:
-            prompt = f"""You are a senior code reviewer.
+            prompt = f"""
+You are a senior Python code reviewer.
+
+Your job is to produce a HIGH QUALITY structured review.
+
+STRICT REQUIREMENTS:
+1. Identify ALL bugs (exact count if known)
+2. Explain root cause clearly
+3. Assign severity (Critical/High/Medium/Low)
+4. Provide FIX with corrected code
+5. Be precise (no vague statements)
+6. Keep response concise but complete
+
+FORMAT:
+
+Bug 1:
+- Issue:
+- Cause:
+- Severity:
+- Fix:
+<corrected code snippet>
+
+Bug 2:
+...
 
 Task:
 {task_description}
@@ -164,7 +187,9 @@ Task:
 Code:
 {code_snippet}
 
-Find all bugs, explain causes, severity, and give fixes."""
+Previous feedback:
+{feedback}
+"""
             response = _client.chat.completions.create(
                 model=os.environ.get("MODEL_NAME", MODEL_NAME),
                 messages=[{"role": "user", "content": prompt}],
